@@ -40,22 +40,25 @@ Use `--help` parameter to see the complete list of command line options:
 
 	optional arguments:
 	  -h, --help  show this help message and exit
-	  -v          verbose logging
-	  -l FILE     log to file
-	  -d PATH     destination path for generated files
-	  -u FMT      <pubDate> date/time parsing format
-	  -o FMT      <wp:post_date> and <wp:post_date_gmt> parsing format
-	  -f FMT      date/time fields format for exported data
-	  -p FMT      date prefix format for generated files
-	  -m          preprocess content with Markdown (helpful for MD input)
-	  -n LEN      post name (slug) length limit for file naming
-	  -r          generate reference links instead of inline
-	  -ps PATH    post files path (see docs for variable names)
-	  -pg PATH    page files path
-	  -dr PATH    draft files path
-	  -url        keep absolute URLs in hrefs and image srcs
-	  -b URL      base URL to subtract from hrefs (default is the root)
-
+	  -v           verbose logging
+	  -l FILE      log to file
+	  -d PATH      destination path for generated files
+	  -u FMT       <pubDate> date/time parsing format
+	  -o FMT       <wp:post_date> and <wp:post_date_gmt> parsing format
+	  -f FMT       date/time fields format for exported data
+	  -p FMT       date prefix format for generated files
+	  -m           preprocess content with Markdown (helpful for MD input)
+	  -n LEN       post name (slug) length limit for file naming
+	  -r           generate reference links instead of inline
+	  -ps PATH     post files path (see docs for variable names)
+	  -pg PATH     page files path
+	  -dr PATH     draft files path
+	  -cp PATH     custom post type files path
+	  -op PATH     path for all posts. This will override path for every post type except draft path
+	  -url         keep absolute URLs in hrefs and image srcs
+	  -b URL       base URL to subtract from hrefs (default is the root)
+	  -i POST_TYPE include only these post types
+	  -e POST_TYPE exclude these post types
 
 ## The output
 
@@ -64,6 +67,14 @@ The script generates a separate file for each post, page and draft, and groups i
 ![Exported files](http://img-fotki.yandex.ru/get/6500/988666.0/0_a05da_66f67f9f_L.jpg)
 
 But you could specify different directory structure and file naming pattern using `-ps`, `-pg` and `-dr` parameters for posts, pages and drafts respectively. For example `-ps {year}/{month}/{day}/{title}.md` will produce date-based subfolders for blog posts.
+
+Options available for directory structure
+
+	  {year}       Post published year
+	  {month}      Post published month
+	  {day}        Post published day
+	  {title}      Title of the post
+	  {post_type}  Name of the current post type. Example - 'post', 'page'. Added for custom post type support
 
 Each exported file has a straightforward structure intended for further processing with [public-static](http://github.com/dreikanter/public-static) website generator. It has an INI-like formatted header followed by markdown-formatted post (or page) contents:
 

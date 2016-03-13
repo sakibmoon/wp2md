@@ -101,10 +101,14 @@ def init():
     init_logging(args.l, args.v)
     conf = {
         'source_file': args.source,
+		'include_post_type' : args.i.split(",") if args.i else args.i,
+		'exclude_post_type' : args.e.split(",") if args.e else args.e,
         'dump_path': args.d,
         'page_path': args.pg,
         'post_path': args.ps,
         'draft_path': args.dr,
+		'cpt_path': args.cp,
+        'override_path': args.op,
         'verbose': args.v,
         'parse_date_fmt': args.u,
         'post_date_fmt': args.o,
@@ -118,7 +122,7 @@ def init():
         'fix_urls': args.url,
         'base_url': args.b,
     }
-
+    
     try:
         value = int(conf['max_name_len'])
         if value < 0 or value > 100:
@@ -223,19 +227,31 @@ def parse_args():
         '-ps',
         action='store',
         metavar='PATH',
-        default=os.path.join("posts", "{year}{month}{day}-{name}.md"),
+        default="{post_type}/{name}.md",
         help='post files path (see docs for variable names)')
     parser.add_argument(
         '-pg',
         action='store',
         metavar='PATH',
-        default=os.path.join("pages", "{name}.md"),
+        default="{post_type}/{name}.md",
         help='page files path')
+    parser.add_argument(
+        '-cp',
+        action='store',
+        metavar='PATH',
+        default="{post_type}/{name}.md",
+        help='page files path')
+    parser.add_argument(
+        '-op',
+        action='store',
+        metavar='PATH',
+        default=False,
+        help='Path argument for all post type. This will override -pg,-ps,-cp flag')
     parser.add_argument(
         '-dr',
         action='store',
         metavar='PATH',
-        default="drafts/{name}.md",
+        default="{post_type}/drafts/{name}.md",
         help='draft files path')
     parser.add_argument(
         '-url',
@@ -251,7 +267,17 @@ def parse_args():
     parser.add_argument(
         'source',
         action='store',
-        help='source XML dump exported from Wordpress')
+        help='source XML dump exported from Wordpress'),
+    parser.add_argument(
+        '-i',
+        action='store',
+        default=False,
+        help='include post types'),
+    parser.add_argument(
+        '-e',
+        action='store',
+        default=False,
+        help='exclude post types')
     return parser.parse_args(sys.argv[1:])
 
 
@@ -291,9 +317,14 @@ def get_path_fmt(item_type, data):
 
     if data.get('status', None).lower() == 'draft':
         return conf['draft_path']
-    is_post = item_type == 'post'
-    return conf['post_path'] if is_post else conf['page_path']
-
+    if conf['override_path']:
+        return conf['override_path']
+    if item_type == 'page':
+	    return conf['page_path']
+    elif item_type == 'post':
+        return conf['post_path']
+    else:
+        return conf['cpt_path']
 
 def get_path(item_type, file_name=None, data=None):
     """Generates full path for the generated file using configuration
@@ -327,6 +358,7 @@ def get_path(item_type, file_name=None, data=None):
         relpath = relpath.format(year=time.strftime("%Y", post_date),
                                  month=time.strftime("%m", post_date),
                                  day=time.strftime("%d", post_date),
+								 post_type=item_type,
                                  name=name,
                                  title=name)
 
@@ -436,7 +468,7 @@ def statplusplus(field, value=1):
     if field in stats:
         stats[field] += value
     else:
-        raise ValueError("Illegal name for stats field: " + str(field))
+	    stats[field] = 0
 
 
 # Parser data handlers
@@ -466,9 +498,16 @@ def dump_item(data):
         return
 
     item_type = data['post_type']
-    if item_type not in ['post', 'page', 'draft']:
-        return
 
+    # exclude post type added by -e flag
+    if conf['exclude_post_type']:
+        if item_type in conf['exclude_post_type']:
+            return
+
+    # include only post type added by -i flag
+    if conf['include_post_type']:
+        if item_type not in conf['include_post_type']:
+            return
     fields = WHAT2SAVE['item']
     pdata = {}
     for field in fields:
@@ -627,8 +666,6 @@ class CustomParser:
 
     def store_item_info(self):
         post_type = self.item.get('post_type', '').lower()
-        if not post_type in ['post', 'page']:
-            return
 
         fields = [
             'title',
@@ -657,8 +694,13 @@ def main():
     parser.feed(text)
 
     log.info('')
-    totals = 'Total: posts: {post}; pages: {page}; comments: {comment}'
-    log.info(totals.format(**stats))
+    total = '';
+    for key,value in stats.items():
+        total += str(key)
+        total += ': '
+        total += str(value)
+        total += '\n'
+    log.info(total);
     log.info('Elapsed time: %s s' % stopwatch_get())
 
 
